@@ -1,0 +1,6 @@
+strands-agents
+google-generativeai
+strands-ai[google,tools]
+strands-agents[openai]
+strands-agents-tools
+python-dotenv
