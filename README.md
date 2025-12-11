@@ -38,7 +38,7 @@ source flask_env/bin/activate  # On Windows: flask_env\Scripts\activate
 
 3. **Install dependencies**
 ```bash
-pip install -r requirements_flask.txt
+pip install -r requirements.txt
 ```
 
 4. **Set up environment variables**
@@ -214,3 +214,4 @@ A Strands-Agents project that provides a **retrieval-augmented generation (RAG)*
 
 
 >>>>>>> 0530009ce4dce42a8b8e93d30f1b4cea0f461b43
+
