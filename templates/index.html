@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strands AWS RAG Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f2027 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #ffffff;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 900px;
+            height: 85vh;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #4a9b5e;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(74, 155, 94, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4a9b5e 0%, #3d7a4a 100%);
+            color: #ffffff;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .chat-header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-header p {
+            opacity: 0.8;
+            font-size: 0.95rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .strands-logo {
+            display: inline-block;
+            color: #ffffff;
+            font-weight: 900;
+            margin-right: 10px;
+        }
+
+        .header-upload {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-upload .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .header-upload .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .header-upload .file-input-label {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            color: #ffffff;
+            font-size: 13px;
+            transition: all 0.3s ease;
+        }
+
+        .header-upload .file-input-label:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .header-upload .upload-status {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 15px 20px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #4a9b5e 0%, #3d7a4a 100%);
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        .message.bot .message-content {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(74, 155, 94, 0.3);
+            color: #ffffff;
+            backdrop-filter: blur(5px);
+        }
+
+        .chat-input {
+            padding: 25px;
+            background: rgba(0, 0, 0, 0.6);
+            border-top: 1px solid rgba(74, 155, 94, 0.3);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .camera-btn {
+            padding: 15px;
+            background: rgba(74, 155, 94, 0.2);
+            border: 1px solid #4a9b5e;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #4a9b5e;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .camera-btn:hover {
+            background: rgba(74, 155, 94, 0.3);
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .camera-input {
+            display: none;
+        }
+
+        #messageInput {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+            border-radius: 25px;
+            outline: none;
+            font-size: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            color: #ffffff;
+            transition: all 0.3s ease;
+        }
+
+        #messageInput:focus {
+            border-color: #4a9b5e;
+            box-shadow: 0 0 15px rgba(74, 155, 94, 0.3);
+        }
+
+        #messageInput::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        #sendButton {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #4a9b5e 0%, #3d7a4a 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        #sendButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 155, 94, 0.3);
+        }
+
+        #sendButton:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.5);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            color: #4a9b5e;
+            font-weight: 500;
+        }
+
+        .loading::before {
+            content: '⚡ ';
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .error {
+            background: rgba(255, 0, 0, 0.1);
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 20px;
+            color: #4a9b5e;
+            font-style: italic;
+        }
+
+        .typing-indicator::after {
+            content: '...';
+            animation: typing 1.5s infinite;
+        }
+
+        @keyframes typing {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 136, 0.5);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 136, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1><span class="strands-logo">STRANDS</span>AWS Course Assistant</h1>
+            <p>Powered by Strands Agents • Ask me anything about AWS Cloud & AI Practitioner courses</p>
+            
+            <!-- PDF Upload in header -->
+            <div class="header-upload">
+                <div class="file-input-wrapper">
+                    <input type="file" id="pdfFile" accept=".pdf">
+                    <label for="pdfFile" class="file-input-label">📄 Upload PDF</label>
+                </div>
+                <div class="upload-status" id="uploadStatus">Expand knowledge base with your PDFs</div>
+            </div>
+        </div>
+        
+        
+        <div class="chat-messages" id="chatMessages">
+        </div>
+        
+        <div class="loading" id="loading">
+            Searching course materials and generating response...
+        </div>
+        
+        <div class="typing-indicator" id="typingIndicator">
+            Assistant is typing
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="Ask about AWS services, concepts, exam topics, or best practices..." />
+                <button class="camera-btn" id="cameraBtn" title="Upload Photo">📷</button>
+                <input type="file" id="photoFile" class="camera-input" accept="image/*">
+            </div>
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const loading = document.getElementById('loading');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const pdfFile = document.getElementById('pdfFile');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const cameraBtn = document.getElementById('cameraBtn');
+        const photoFile = document.getElementById('photoFile');
+
+        // Generate unique session ID
+        const sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+        // Add initial welcome message
+        addMessage('🚀 Welcome to Strands AWS Course Assistant! I\'m powered by advanced RAG technology and can help you with questions about AWS Cloud Practitioner and AI Practitioner course materials. You can also upload your own PDFs to expand the knowledge base. What would you like to explore today?', false);
+
+        // PDF upload functionality (auto-upload on file selection)
+        pdfFile.addEventListener('change', async () => {
+            const file = pdfFile.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            uploadStatus.textContent = 'Processing PDF...';
+            uploadStatus.style.color = '#4a9b5e';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    uploadStatus.textContent = result.message;
+                    uploadStatus.style.color = '#4a9b5e';
+                } else {
+                    uploadStatus.textContent = result.error;
+                    uploadStatus.style.color = '#ff6b6b';
+                }
+            } catch (error) {
+                uploadStatus.textContent = 'Upload failed. Please try again.';
+                uploadStatus.style.color = '#ff6b6b';
+            }
+            
+            pdfFile.value = ''; // Clear file input
+        });
+
+        // Camera button functionality
+        cameraBtn.addEventListener('click', () => {
+            photoFile.click();
+        });
+
+        // Photo upload functionality
+        photoFile.addEventListener('change', async () => {
+            const file = photoFile.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('session_id', sessionId);
+
+            // Show uploading message
+            const uploadingMsg = addMessage('📷 Analyzing architecture diagram...', false);
+
+            try {
+                const response = await fetch('/upload_image', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                // Remove uploading message
+                uploadingMsg.parentElement.remove();
+                
+                if (response.ok && result.analysis) {
+                    addMessage(result.analysis, false);
+                } else {
+                    addMessage(`❌ ${result.error || 'Analysis failed'}`, false);
+                }
+            } catch (error) {
+                uploadingMsg.parentElement.remove();
+                addMessage('❌ Image analysis failed. Please try again.', false);
+            }
+            
+            photoFile.value = ''; // Clear file input
+        });
+
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            return contentDiv;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = `Error: ${message}`;
+            chatMessages.appendChild(errorDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            addMessage(message, true);
+            messageInput.value = '';
+            sendButton.disabled = true;
+
+            // Create bot message container for streaming
+            const botMessageContent = addMessage('', false);
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        message: message,
+                        session_id: sessionId 
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const data = JSON.parse(line.slice(6));
+                                
+                                if (data.error) {
+                                    botMessageContent.textContent = `Error: ${data.error}`;
+                                    break;
+                                }
+                                
+                                if (data.chunk) {
+                                    fullResponse += data.chunk;
+                                    botMessageContent.textContent = fullResponse;
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                                
+                                if (data.done) {
+                                    break;
+                                }
+                            } catch (e) {
+                                // Skip malformed JSON
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                botMessageContent.textContent = 'Failed to connect to server';
+            } finally {
+                sendButton.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        messageInput.focus();
+    </script>
+</body>
+</html>
