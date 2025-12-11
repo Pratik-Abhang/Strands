@@ -84,7 +84,7 @@ Strands/
 ├── app.py                    # Main Flask application
 ├── templates/
 │   └── index.html           # Frontend chat interface
-├── requirements_flask.txt   # Python dependencies
+├── requirements.txt   # Python dependencies
 ├── run_app.py              # Launch script
 ├── uploads/                # Temporary file storage
 ├── vectordb_openai/        # FAISS vector database
@@ -214,4 +214,5 @@ A Strands-Agents project that provides a **retrieval-augmented generation (RAG)*
 
 
 >>>>>>> 0530009ce4dce42a8b8e93d30f1b4cea0f461b43
+
 
