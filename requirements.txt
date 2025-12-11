@@ -16,9 +16,6 @@ langchain_chroma
 pyarrow==15.0.2
 pypdf
 Flask==2.3.3
-strands-agents
-strands-agents[anthropic]
-strands-agents-tools
 langchain-openai
 langchain-community
 faiss-cpu
